@@ -72,8 +72,6 @@ def on_obstransition(message):
         print("cant find scene {}".format(sn))
 
 def on_midi_msg(message):
-    
-
     if(message.type == "note_off"):
         return
 
@@ -83,7 +81,14 @@ def on_midi_msg(message):
         print("not a button press!")
         return
     print(message.note)
-    obs.call(requests.SetPreviewScene(scenes[message.note]))
+
+    if message.note < 14:
+        obs.call(requests.SetPreviewScene(scenes[message.note]))
+        return
+    
+    if message.note == 17:
+        obs.call(requests.TransitionToProgram())
+        return
 
 def on_obs_scenes(message):
     print("Scenes Changed:\n {}".format(message.getScenes()))
@@ -92,7 +97,20 @@ def on_obs_ignore(message):
     #do nothing
     return
 
+def on_obs_recstarted(message):
+    midi_send(L_RECSTAT, RED)
 
+def on_obs_recpaused(message):
+    midi_send(L_RECSTAT, PURPLE)
+
+def on_obs_recstopped(message):
+    midi_send(L_RECSTAT, COLOR_OFF)
+
+def on_obs_streamstarted(message):
+    midi_send(L_STREAM, PURPLE)
+
+def on_obs_streamstopped(message):
+    midi_send(L_STREAM, RED)
 
 midin = mido.open_input(config['midi_input'], callback=on_midi_msg)
 midout = mido.open_output(config['midi_output'])
@@ -110,6 +128,12 @@ obs.register(on_obstransition, events.TransitionBegin)
 obs.register(on_obs_ignore, events.TransitionEnd)
 obs.register(on_obs_ignore, events.TransitionDurationChanged)
 obs.register(on_obs_scenes, events.ScenesChanged)
+obs.register(on_obs_recstarted, events.RecordingStarted)
+obs.register(on_obs_recpaused, events.RecordingPaused)
+obs.register(on_obs_recstopped, events.RecordingStopped)
+obs.register(on_obs_streamstarted, events.StreamStarted)
+obs.register(on_obs_streamstopped, events.StreamStopped)
+
 #obs.register(on_obs_scenes, events.SceneCollectionChanged)
 
 obs.connect()
@@ -121,16 +145,27 @@ for s in allscenes.getScenes():
     scenes.append(sname)
 
 #get the current scene
-cs = obs.call(requests.GetCurrentScene())
-lastScene = scenes.index(cs.getName())
-midi_send(lastScene, RED)
-
 ps = obs.call(requests.GetPreviewScene())
 lastPreview = scenes.index(ps.getName())
 midi_send(lastPreview, GREEN)
 
-ss = obs.call(requests.GetStreamingStatus())
+cs = obs.call(requests.GetCurrentScene())
+lastScene = scenes.index(cs.getName())
+midi_send(lastScene, RED)
 
+#get recording/streaming statuses
+ss = obs.call(requests.GetStreamingStatus())
+if(ss.getStreaming()):
+    midi_send(L_STREAM, GREEN)
+else:
+    midi_send(L_STREAM, RED)
+
+if(ss.getRecording()):
+    midi_send(L_RECSTAT, RED)
+else:
+    midi_send(L_RECSTAT, COLOR_OFF)
+
+midi_send(L_CONNECT, BLUE)
 
 
 try:
