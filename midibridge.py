@@ -4,10 +4,13 @@
 #With ideas borrowed from the examples of obs-websocket-py and Mido
 
 import json
+import threading
 import mido
 from obswebsocket import obsws, events, requests
 import time
 import hashlib
+#import threading
+from threading import Thread, Timer
 
 config = {}
 scenes = []
@@ -27,10 +30,17 @@ GREEN = 3
 TEAL = 4
 BLUE = 5
 PURPLE = 6
+PINK = 7
+ORANGE = 8
 
-L_CONNECT = 18
-L_STREAM = 19
-L_RECSTAT = 20
+L_CONNECT = 17
+L_STREAM = 18
+L_RECSTAT = 19
+
+B_TRANSITION = 17
+B_STAR = 16
+B_LEFT = 14
+B_RIGHT = 15
 
 def on_obsevent(message):
     print(u"Message Received from OBS:{}".format(message))
@@ -59,6 +69,15 @@ def on_obspreviewswitch(message):
 def midi_send(ch, color):
     midout.send(mido.Message('control_change', channel=0, control=ch, value=color))
 
+def alive_thread():
+    while(1):
+        send_alive()
+        time.sleep(4)
+
+def send_alive():
+    midout.send(mido.Message('program_change', channel=0, program=1))
+    print("keepalive!")
+
 def on_obstransition(message):
     print(u"Transition from {} to {}".format(message.getFromScene(), message.getToScene()))
     global lastScene
@@ -82,11 +101,11 @@ def on_midi_msg(message):
         return
     print(message.note)
 
-    if message.note < 14:
+    if message.note < 8:
         obs.call(requests.SetPreviewScene(scenes[message.note]))
         return
     
-    if message.note == 17:
+    if message.note == B_TRANSITION:
         obs.call(requests.TransitionToProgram())
         return
 
@@ -165,12 +184,19 @@ if(ss.getRecording()):
 else:
     midi_send(L_RECSTAT, COLOR_OFF)
 
-midi_send(L_CONNECT, BLUE)
+#midi_send(L_CONNECT, BLUE)
+midi_send(B_TRANSITION, ORANGE)
+midi_send(8, TEAL)
 
+#t = threading.Thread(target=alive_thread)
+#t.start()
 
 try:
     while 1:
-        time.sleep(100)
+        time.sleep(1)
+        #midout.send(mido.Message('program_change', channel=0, program=1))
+        midi_send(50, COLOR_OFF)
+        #print("keepalive")
 except KeyboardInterrupt:
         pass
 
