@@ -32,10 +32,11 @@ BLUE = 5
 PURPLE = 6
 PINK = 7
 ORANGE = 8
+LIME = 9
 
-L_CONNECT = 17
-L_STREAM = 18
-L_RECSTAT = 19
+L_CONNECT = 18
+L_STREAM = 19
+L_RECSTAT = 20
 
 B_TRANSITION = 17
 B_STAR = 16
@@ -50,7 +51,7 @@ def on_obspreviewswitch(message):
     global lastScene
     print(u"Preview Scene changed to {}".format(message.getSceneName()))
     sn = message.getSceneName()
-    if sn in scenes:
+    if sn in scenes:            
         if(lastPreview == lastScene):
             midi_send(lastPreview, RED)
             lastPreview = scenes.index(sn)
@@ -126,10 +127,10 @@ def on_obs_recstopped(message):
     midi_send(L_RECSTAT, COLOR_OFF)
 
 def on_obs_streamstarted(message):
-    midi_send(L_STREAM, PURPLE)
+    midi_send(L_STREAM, GREEN)
 
 def on_obs_streamstopped(message):
-    midi_send(L_STREAM, RED)
+    midi_send(L_STREAM, PURPLE)
 
 midin = mido.open_input(config['midi_input'], callback=on_midi_msg)
 midout = mido.open_output(config['midi_output'])
@@ -177,7 +178,7 @@ ss = obs.call(requests.GetStreamingStatus())
 if(ss.getStreaming()):
     midi_send(L_STREAM, GREEN)
 else:
-    midi_send(L_STREAM, RED)
+    midi_send(L_STREAM, PURPLE)
 
 if(ss.getRecording()):
     midi_send(L_RECSTAT, RED)
@@ -187,6 +188,11 @@ else:
 #midi_send(L_CONNECT, BLUE)
 midi_send(B_TRANSITION, ORANGE)
 midi_send(8, TEAL)
+midi_send(9, YELLOW)
+midi_send(10, PINK)
+midi_send(11, LIME)
+
+
 
 #t = threading.Thread(target=alive_thread)
 #t.start()
@@ -194,8 +200,8 @@ midi_send(8, TEAL)
 try:
     while 1:
         time.sleep(1)
-        #midout.send(mido.Message('program_change', channel=0, program=1))
-        midi_send(50, COLOR_OFF)
+        midout.send(mido.Message('program_change', channel=0, program=1))
+        #midi_send(50, COLOR_OFF)
         #print("keepalive")
 except KeyboardInterrupt:
         pass
