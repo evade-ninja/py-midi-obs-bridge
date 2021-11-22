@@ -11,6 +11,7 @@ import time
 import hashlib
 #import threading
 from threading import Thread, Timer
+import keyboard
 
 config = {}
 scenes = []
@@ -42,6 +43,9 @@ B_TRANSITION = 17
 B_STAR = 16
 B_LEFT = 14
 B_RIGHT = 15
+B_TITLE = 16
+B_NEXT = 15
+B_PREV = 14
 
 def on_obsevent(message):
     print(u"Message Received from OBS:{}".format(message))
@@ -53,17 +57,23 @@ def on_obspreviewswitch(message):
     sn = message.getSceneName()
     if sn in scenes:            
         if(lastPreview == lastScene):
-            midi_send(lastPreview, RED)
+            if lastPreview < 8:
+                midi_send(lastPreview, RED)
             lastPreview = scenes.index(sn)
-            midi_send(scenes.index(sn), GREEN)
+            if scenes.index(sn) < 8:
+                midi_send(scenes.index(sn), GREEN)
         elif(lastScene == scenes.index(sn)):
-            midi_send(lastPreview, COLOR_OFF)
+            if lastPreview < 8:
+                midi_send(lastPreview, COLOR_OFF)
             lastPreview = scenes.index(sn)
-            midi_send(scenes.index(sn), RED)
+            if scenes.index(sn) < 8:
+                midi_send(scenes.index(sn), RED)
         else:
-            midi_send(lastPreview, COLOR_OFF)
+            if lastPreview < 8:
+                midi_send(lastPreview, COLOR_OFF)
             lastPreview = scenes.index(sn)
-            midi_send(scenes.index(sn), GREEN)
+            if scenes.index(sn) < 8:
+                midi_send(scenes.index(sn), GREEN)
     else:
         print("cant find scene {}".format(sn))
 
@@ -84,8 +94,10 @@ def on_obstransition(message):
     global lastScene
     sn = message.getToScene()
     if sn in scenes:
-        midi_send(lastScene, COLOR_OFF)
-        midi_send(scenes.index(sn), RED)
+        if lastScene < 8:
+            midi_send(lastScene, COLOR_OFF)
+        if scenes.index(sn) < 8:
+            midi_send(scenes.index(sn), RED)
         lastPreview = scenes.index(sn)
         lastScene = scenes.index(sn)
     else:
@@ -109,6 +121,22 @@ def on_midi_msg(message):
     if message.note == B_TRANSITION:
         obs.call(requests.TransitionToProgram())
         return
+    
+    if message.note == B_TITLE:
+        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F13", keyModifiers=""))
+        return
+    
+    if message.note == B_NEXT:
+        #keyboard.send("F15")
+        #obs.call(requests.TriggerHotkeyByName("hotkeyLyricSwitch1"))
+        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F14", keyModifiers=""))
+        print("next!")
+        return
+
+    if message.note == B_PREV:
+        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F15", keyModifiers=""))
+        return
+
 
 def on_obs_scenes(message):
     print("Scenes Changed:\n {}".format(message.getScenes()))
@@ -191,6 +219,9 @@ midi_send(8, TEAL)
 midi_send(9, YELLOW)
 midi_send(10, PINK)
 midi_send(11, LIME)
+midi_send(B_NEXT, LIME)
+midi_send(B_PREV, PINK)
+midi_send(B_TITLE, BLUE)
 
 
 
