@@ -11,7 +11,6 @@ import time
 import hashlib
 #import threading
 from threading import Thread, Timer
-import keyboard
 
 config = {}
 scenes = []
