@@ -46,6 +46,8 @@ B_TITLE = 16
 B_NEXT = 15
 B_PREV = 14
 
+MAX_CAM = 14 #highest number of scenes (was 14)
+
 def on_obsevent(message):
     print(u"Message Received from OBS:{}".format(message))
 
@@ -56,22 +58,22 @@ def on_obspreviewswitch(message):
     sn = message.getSceneName()
     if sn in scenes:            
         if(lastPreview == lastScene):
-            if lastPreview < 8:
+            if lastPreview < MAX_CAM:
                 midi_send(lastPreview, RED)
             lastPreview = scenes.index(sn)
-            if scenes.index(sn) < 8:
+            if scenes.index(sn) < MAX_CAM:
                 midi_send(scenes.index(sn), GREEN)
         elif(lastScene == scenes.index(sn)):
-            if lastPreview < 8:
+            if lastPreview < MAX_CAM:
                 midi_send(lastPreview, COLOR_OFF)
             lastPreview = scenes.index(sn)
-            if scenes.index(sn) < 8:
+            if scenes.index(sn) < MAX_CAM:
                 midi_send(scenes.index(sn), RED)
         else:
-            if lastPreview < 8:
+            if lastPreview < MAX_CAM:
                 midi_send(lastPreview, COLOR_OFF)
             lastPreview = scenes.index(sn)
-            if scenes.index(sn) < 8:
+            if scenes.index(sn) < MAX_CAM:
                 midi_send(scenes.index(sn), GREEN)
     else:
         print("cant find scene {}".format(sn))
@@ -93,9 +95,9 @@ def on_obstransition(message):
     global lastScene
     sn = message.getToScene()
     if sn in scenes:
-        if lastScene < 8:
+        if lastScene < MAX_CAM:
             midi_send(lastScene, COLOR_OFF)
-        if scenes.index(sn) < 8:
+        if scenes.index(sn) < MAX_CAM:
             midi_send(scenes.index(sn), RED)
         lastPreview = scenes.index(sn)
         lastScene = scenes.index(sn)
@@ -113,10 +115,20 @@ def on_midi_msg(message):
         return
     print(message.note)
 
-    if message.note < 8:
+    if message.note < MAX_CAM:
         obs.call(requests.SetPreviewScene(scenes[message.note]))
         return
     
+    if message.note == 12:
+        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F17", keyModifiers=""))
+        return
+
+#requests.SetSourceSettings(sourceName="QandAOverlay", sourceSettings=)
+
+    if message.note == 13:
+        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F16", keyModifiers=""))
+        return
+
     if message.note == B_TRANSITION:
         obs.call(requests.TransitionToProgram())
         return
@@ -159,6 +171,9 @@ def on_obs_streamstarted(message):
 def on_obs_streamstopped(message):
     midi_send(L_STREAM, PURPLE)
 
+def on_exit(message):
+    quit()
+
 midin = mido.open_input(config['midi_input'], callback=on_midi_msg)
 midout = mido.open_output(config['midi_output'])
 
@@ -180,6 +195,7 @@ obs.register(on_obs_recpaused, events.RecordingPaused)
 obs.register(on_obs_recstopped, events.RecordingStopped)
 obs.register(on_obs_streamstarted, events.StreamStarted)
 obs.register(on_obs_streamstopped, events.StreamStopped)
+#obs.register(on_exit, events.Exiting)
 
 #obs.register(on_obs_scenes, events.SceneCollectionChanged)
 
@@ -214,10 +230,8 @@ else:
 
 #midi_send(L_CONNECT, BLUE)
 midi_send(B_TRANSITION, ORANGE)
-midi_send(8, TEAL)
-midi_send(9, YELLOW)
-midi_send(10, PINK)
-midi_send(11, LIME)
+midi_send(12, TEAL)
+midi_send(13, YELLOW)
 midi_send(B_NEXT, LIME)
 midi_send(B_PREV, PINK)
 midi_send(B_TITLE, BLUE)
