@@ -1,0 +1,7 @@
+{
+    "server": "localhost",
+    "port": "4455",
+    "password": "your-super-secret-password-goes-here",
+    "midi_input": "Arduino Leonardo",
+    "midi_output": "Arduino Leonardo"
+}
