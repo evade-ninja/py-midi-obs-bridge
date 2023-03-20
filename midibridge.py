@@ -9,7 +9,6 @@ import mido
 from obswebsocket import obsws, events, requests
 import time
 import hashlib
-#import threading
 from threading import Thread, Timer
 
 config = {}
@@ -54,8 +53,8 @@ def on_obsevent(message):
 def on_obspreviewswitch(message):
     global lastPreview
     global lastScene
-    print(u"Preview Scene changed to {}".format(message.getSceneName()))
-    sn = message.getSceneName()
+    print(u"Preview Scene changed to {}".format(message.datain['sceneName']))
+    sn = message.datain['sceneName']
     if sn in scenes:            
         if(lastPreview == lastScene):
             if lastPreview < MAX_CAM:
@@ -91,9 +90,10 @@ def send_alive():
     print("keepalive!")
 
 def on_obstransition(message):
-    print(u"Transition from {} to {}".format(message.getFromScene(), message.getToScene()))
+    print(u"Transition to {}".format(
+        message.datain['sceneName']))
     global lastScene
-    sn = message.getToScene()
+    sn = message.datain['sceneName']
     if sn in scenes:
         if lastScene < MAX_CAM:
             midi_send(lastScene, COLOR_OFF)
@@ -116,36 +116,42 @@ def on_midi_msg(message):
     print(message.note)
 
     if message.note < MAX_CAM:
-        obs.call(requests.SetPreviewScene(scenes[message.note]))
+        obs.call(requests.SetCurrentPreviewScene(sceneName=scenes[message.note]))
         return
     
     if message.note == 12:
         obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F17", keyModifiers=""))
         return
 
-#requests.SetSourceSettings(sourceName="QandAOverlay", sourceSettings=)
-
     if message.note == 13:
         obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F16", keyModifiers=""))
+        #obs.call(requests.TriggerHotkeyByName(
+        #    hotkeyName="A_SWITCH_1"))
         return
 
     if message.note == B_TRANSITION:
-        obs.call(requests.TransitionToProgram())
+        obs.call(requests.TriggerStudioModeTransition())
         return
     
     if message.note == B_TITLE:
-        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F13", keyModifiers=""))
+        #obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F13", keyModifiers=""))
+        #obs.call(requests.TriggerHotkeyByName(
+        #    hotkeyName="A_SWITCH_1"))
+        obs.call(requests.CallVendorRequest(vendorName="obs-browser",
+                 requestType="emit_event", requestData={'event_name': 'otfShow', 'event_data':'hotkey'}))
         return
     
     if message.note == B_NEXT:
         #keyboard.send("F15")
         #obs.call(requests.TriggerHotkeyByName("hotkeyLyricSwitch1"))
-        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F14", keyModifiers=""))
+        obs.call(requests.CallVendorRequest(vendorName="obs-browser",
+                 requestType="emit_event", requestData={'event_name': 'lyr_next', 'event_data': 'hotkey'}))
         print("next!")
         return
 
     if message.note == B_PREV:
-        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F15", keyModifiers=""))
+        obs.call(requests.CallVendorRequest(vendorName="obs-browser",
+                 requestType="emit_event", requestData={'event_name': 'lyr_prev', 'event_data': 'hotkey'}))
         return
 
 
@@ -177,16 +183,11 @@ def on_exit(message):
 midin = mido.open_input(config['midi_input'], callback=on_midi_msg)
 midout = mido.open_output(config['midi_output'])
 
-#print(config)
-#print(config['midi_input'])
-
-
-
 #now we connect to OBS
 obs = obsws(config['server'], config['port'], config['password'])
 #obs.register(on_obsevent)
-obs.register(on_obspreviewswitch, events.PreviewSceneChanged)
-obs.register(on_obstransition, events.TransitionBegin)
+obs.register(on_obspreviewswitch, events.CurrentPreviewSceneChanged)
+obs.register(on_obstransition, events.CurrentProgramSceneChanged)
 obs.register(on_obs_ignore, events.TransitionEnd)
 obs.register(on_obs_ignore, events.TransitionDurationChanged)
 obs.register(on_obs_scenes, events.ScenesChanged)
@@ -203,32 +204,35 @@ obs.connect()
 
 #get all the scenes
 allscenes = obs.call(requests.GetSceneList())
-for s in allscenes.getScenes():
-    sname = s['name']
+thescenes = allscenes.datain['scenes']
+thescenes.reverse()
+for s in thescenes:
+    sname = s['sceneName']
     scenes.append(sname)
-
-#get the current scene
-ps = obs.call(requests.GetPreviewScene())
-lastPreview = scenes.index(ps.getName())
+#allscenes.datain['scenes'][0]
+#get the current program & preview scenes
+lastPreview = scenes.index(allscenes.datain['currentPreviewSceneName'])
 midi_send(lastPreview, GREEN)
 
-cs = obs.call(requests.GetCurrentScene())
-lastScene = scenes.index(cs.getName())
+lastScene = scenes.index(allscenes.datain['currentProgramSceneName'])
 midi_send(lastScene, RED)
 
 #get recording/streaming statuses
-ss = obs.call(requests.GetStreamingStatus())
-if(ss.getStreaming()):
+ss = obs.call(requests.GetStreamStatus())
+if(ss.datain['outputActive']):
     midi_send(L_STREAM, GREEN)
 else:
     midi_send(L_STREAM, PURPLE)
 
-if(ss.getRecording()):
+sr = obs.call(requests.GetRecordStatus())
+if(sr.datain['outputActive']):
     midi_send(L_RECSTAT, RED)
 else:
     midi_send(L_RECSTAT, COLOR_OFF)
 
 #midi_send(L_CONNECT, BLUE)
+#default colors:
+
 midi_send(B_TRANSITION, ORANGE)
 midi_send(12, TEAL)
 midi_send(13, YELLOW)
@@ -236,7 +240,7 @@ midi_send(B_NEXT, LIME)
 midi_send(B_PREV, PINK)
 midi_send(B_TITLE, BLUE)
 
-
+print(obs.call(requests.GetHotkeyList()))
 
 #t = threading.Thread(target=alive_thread)
 #t.start()
