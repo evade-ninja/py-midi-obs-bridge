@@ -125,8 +125,6 @@ def on_midi_msg(message):
 
     if message.note == 13:
         obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F16", keyModifiers=""))
-        #obs.call(requests.TriggerHotkeyByName(
-        #    hotkeyName="A_SWITCH_1"))
         return
 
     if message.note == B_TRANSITION:
@@ -134,16 +132,11 @@ def on_midi_msg(message):
         return
     
     if message.note == B_TITLE:
-        #obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F13", keyModifiers=""))
-        #obs.call(requests.TriggerHotkeyByName(
-        #    hotkeyName="A_SWITCH_1"))
         obs.call(requests.CallVendorRequest(vendorName="obs-browser",
                  requestType="emit_event", requestData={'event_name': 'otfShow', 'event_data':'hotkey'}))
         return
     
     if message.note == B_NEXT:
-        #keyboard.send("F15")
-        #obs.call(requests.TriggerHotkeyByName("hotkeyLyricSwitch1"))
         obs.call(requests.CallVendorRequest(vendorName="obs-browser",
                  requestType="emit_event", requestData={'event_name': 'lyr_next', 'event_data': 'hotkey'}))
         print("next!")
