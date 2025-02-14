@@ -33,19 +33,24 @@ PINK = 7
 ORANGE = 8
 LIME = 9
 
-L_CONNECT = 18
-L_STREAM = 19
-L_RECSTAT = 20
+L_CONNECT = 99
+L_STREAM = 99
+L_RECSTAT = 99
 
-B_TRANSITION = 17
-B_STAR = 16
-B_LEFT = 14
-B_RIGHT = 15
-B_TITLE = 16
-B_NEXT = 15
-B_PREV = 14
+B_TRANSITION = 50
+B_STAR = 24
+B_LEFT = 25
+B_RIGHT = 26
+B_TITLE = 48
+B_NEXT = 51
+B_PREV = 49
 
-MAX_CAM = 14 #highest number of scenes (was 14)
+L_TRANSITION = 18
+L_TITLE = 16
+L_NEXT = 19
+L_PREV = 17
+
+MAX_CAM = 16 #highest number of scenes (was 14)
 
 def on_obsevent(message):
     print(u"Message Received from OBS:{}".format(message))
@@ -119,13 +124,13 @@ def on_midi_msg(message):
         obs.call(requests.SetCurrentPreviewScene(sceneName=scenes[message.note]))
         return
     
-    if message.note == 12:
-        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F17", keyModifiers=""))
-        return
+    # if message.note == 12:
+    #     obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F17", keyModifiers=""))
+    #     return
 
-    if message.note == 13:
-        obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F16", keyModifiers=""))
-        return
+    # if message.note == 13:
+    #     obs.call(requests.TriggerHotkeyBySequence(keyId="OBS_KEY_F16", keyModifiers=""))
+    #     return
 
     if message.note == B_TRANSITION:
         obs.call(requests.TriggerStudioModeTransition())
@@ -155,20 +160,20 @@ def on_obs_ignore(message):
     #do nothing
     return
 
-def on_obs_recstarted(message):
-    midi_send(L_RECSTAT, RED)
+# def on_obs_recstarted(message):
+#     midi_send(L_RECSTAT, RED)
 
-def on_obs_recpaused(message):
-    midi_send(L_RECSTAT, PURPLE)
+# def on_obs_recpaused(message):
+#     midi_send(L_RECSTAT, PURPLE)
 
-def on_obs_recstopped(message):
-    midi_send(L_RECSTAT, COLOR_OFF)
+# def on_obs_recstopped(message):
+#     midi_send(L_RECSTAT, COLOR_OFF)
 
-def on_obs_streamstarted(message):
-    midi_send(L_STREAM, GREEN)
+# def on_obs_streamstarted(message):
+#     midi_send(L_STREAM, GREEN)
 
-def on_obs_streamstopped(message):
-    midi_send(L_STREAM, PURPLE)
+# def on_obs_streamstopped(message):
+#     midi_send(L_STREAM, PURPLE)
 
 def on_exit(message):
     quit()
@@ -184,11 +189,11 @@ obs.register(on_obstransition, events.CurrentProgramSceneChanged)
 obs.register(on_obs_ignore, events.TransitionEnd)
 obs.register(on_obs_ignore, events.TransitionDurationChanged)
 obs.register(on_obs_scenes, events.ScenesChanged)
-obs.register(on_obs_recstarted, events.RecordingStarted)
-obs.register(on_obs_recpaused, events.RecordingPaused)
-obs.register(on_obs_recstopped, events.RecordingStopped)
-obs.register(on_obs_streamstarted, events.StreamStarted)
-obs.register(on_obs_streamstopped, events.StreamStopped)
+# obs.register(on_obs_recstarted, events.RecordingStarted)
+# obs.register(on_obs_recpaused, events.RecordingPaused)
+# obs.register(on_obs_recstopped, events.RecordingStopped)
+# obs.register(on_obs_streamstarted, events.StreamStarted)
+# obs.register(on_obs_streamstopped, events.StreamStopped)
 #obs.register(on_exit, events.Exiting)
 
 #obs.register(on_obs_scenes, events.SceneCollectionChanged)
@@ -211,27 +216,27 @@ lastScene = scenes.index(allscenes.datain['currentProgramSceneName'])
 midi_send(lastScene, RED)
 
 #get recording/streaming statuses
-ss = obs.call(requests.GetStreamStatus())
-if(ss.datain['outputActive']):
-    midi_send(L_STREAM, GREEN)
-else:
-    midi_send(L_STREAM, PURPLE)
+# ss = obs.call(requests.GetStreamStatus())
+# if(ss.datain['outputActive']):
+#     midi_send(L_STREAM, GREEN)
+# else:
+#     midi_send(L_STREAM, PURPLE)
 
-sr = obs.call(requests.GetRecordStatus())
-if(sr.datain['outputActive']):
-    midi_send(L_RECSTAT, RED)
-else:
-    midi_send(L_RECSTAT, COLOR_OFF)
+# sr = obs.call(requests.GetRecordStatus())
+# if(sr.datain['outputActive']):
+#     midi_send(L_RECSTAT, RED)
+# else:
+#     midi_send(L_RECSTAT, COLOR_OFF)
 
 #midi_send(L_CONNECT, BLUE)
 #default colors:
 
-midi_send(B_TRANSITION, ORANGE)
-midi_send(12, TEAL)
-midi_send(13, YELLOW)
-midi_send(B_NEXT, LIME)
-midi_send(B_PREV, PINK)
-midi_send(B_TITLE, BLUE)
+midi_send(L_TRANSITION, ORANGE)
+#midi_send(12, TEAL)
+#midi_send(13, YELLOW)
+midi_send(L_NEXT, LIME)
+midi_send(L_PREV, PINK)
+midi_send(L_TITLE, BLUE)
 
 print(obs.call(requests.GetHotkeyList()))
 
@@ -241,11 +246,11 @@ print(obs.call(requests.GetHotkeyList()))
 try:
     while 1:
         time.sleep(1)
-        midout.send(mido.Message('program_change', channel=0, program=1))
-        #midi_send(50, COLOR_OFF)
-        #print("keepalive")
+#         #midout.send(mido.Message('program_change', channel=0, program=1))
+#         #midi_send(50, COLOR_OFF)
+#         #print("keepalive")
 except KeyboardInterrupt:
-        pass
+         pass
 
 obs.disconnect()
 midin.close()
